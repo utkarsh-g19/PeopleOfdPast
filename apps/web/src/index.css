@@ -2137,3 +2137,72 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Archive country filter */
+.archive-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: -8px 0 28px;
+}
+
+.archive-controls label {
+  color: var(--candle);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+}
+
+.archive-controls select {
+  min-width: 210px;
+  padding: 11px 38px 11px 13px;
+  color: var(--parchment);
+  background: #271923;
+  border: 1px solid var(--frame);
+  border-radius: 8px 3px 8px 3px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.archive-controls select:focus-visible {
+  outline: 2px solid var(--candle);
+  outline-offset: 3px;
+}
+
+.clear-country-filter {
+  padding: 8px 11px;
+  color: var(--candle);
+  background: transparent;
+  border: 1px dashed #f5c66e80;
+  border-radius: 5px;
+  font-size: 11px;
+}
+
+.portrait-credit {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 10px;
+  color: var(--candle);
+  font-size: 9px;
+  line-height: 1.5;
+  text-decoration: underline;
+  text-decoration-color: #f5c66e70;
+  text-underline-offset: 3px;
+}
+
+.portrait-credit:hover {
+  color: var(--pumpkin);
+}
+
+@media (max-width: 480px) {
+  .archive-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .archive-controls select {
+    width: 100%;
+  }
+}

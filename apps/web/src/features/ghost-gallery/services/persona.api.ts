@@ -16,6 +16,9 @@ interface ApiPersona {
   name: string;
   shortBio: string;
   portraitUrl?: string;
+  country?: string;
+  portraitCredit?: string;
+  portraitSourceUrl?: string;
 }
 
 interface PersonaListResponse {
@@ -42,6 +45,9 @@ export async function fetchHistoricalProfiles(
     description: persona.shortBio,
     experience: "ghost",
     imageUrl: persona.portraitUrl,
+    country: persona.country,
+    imageCredit: persona.portraitCredit,
+    imageSourceUrl: persona.portraitSourceUrl,
   }));
 }
 
@@ -172,8 +178,8 @@ export interface HistoricalPersonaDetails {
   disciplines: string[];
   portraitUrl?: string;
   portraitCredit?: string;
+  portraitSourceUrl?: string;
 }
-
 export async function fetchHistoricalPersonaDetails(
   slug: string,
   signal?: AbortSignal,
@@ -194,3 +200,5 @@ export async function fetchHistoricalPersonaDetails(
 
   return result.persona;
 }
+
+

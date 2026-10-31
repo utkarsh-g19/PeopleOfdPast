@@ -1,9 +1,32 @@
-﻿import { useHistoricalProfiles } from "../features/ghost-gallery/hooks/useHistoricalProfiles.js";
+﻿import { useMemo, useState } from "react";
+import { useHistoricalProfiles } from "../features/ghost-gallery/hooks/useHistoricalProfiles.js";
 import ProfileCard from "../features/ghost-gallery/components/ProfileCard.js";
 import RecentLegacies from "../features/ghost-gallery/components/RecentLegacies.js";
 
 export default function GhostGalleryPage() {
   const { profiles, loading, error } = useHistoricalProfiles();
+  const [countryFilter, setCountryFilter] = useState("all");
+
+  const countries = useMemo(() => {
+    const values = profiles.flatMap((profile) =>
+      (profile.country ?? "")
+        .split("/")
+        .map((value) => value.trim())
+        .filter(Boolean),
+    );
+    return [...new Set(values)].sort((a, b) => a.localeCompare(b));
+  }, [profiles]);
+
+  const filteredProfiles = useMemo(() => {
+    if (countryFilter === "all") return profiles;
+
+    return profiles.filter((profile) =>
+      (profile.country ?? "")
+        .split("/")
+        .map((value) => value.trim())
+        .includes(countryFilter),
+    );
+  }, [profiles, countryFilter]);
 
   return (
     <main className="inner-page">
@@ -20,20 +43,49 @@ export default function GhostGalleryPage() {
           <div>
             <span className="eyebrow">THE COLLECTION</span>
             <h2>Across <em>time.</em></h2>
-            <p>{profiles.length} historical figures in the archive.</p>
+            <p>
+              {loading
+                ? "Loading the collection..."
+                : `Showing ${filteredProfiles.length} of ${profiles.length} historical figures.`}
+            </p>
           </div>
+        </div>
+
+        <div className="archive-controls">
+          <label htmlFor="country-filter">FILTER BY COUNTRY</label>
+          <select
+            id="country-filter"
+            value={countryFilter}
+            onChange={(event) => setCountryFilter(event.target.value)}
+          >
+            <option value="all">All countries</option>
+            {countries.map((country) => (
+              <option key={country} value={country}>{country}</option>
+            ))}
+          </select>
+          {countryFilter !== "all" && (
+            <button
+              className="clear-country-filter"
+              type="button"
+              onClick={() => setCountryFilter("all")}
+            >
+              Clear filter
+            </button>
+          )}
         </div>
 
         {loading && <p className="gallery-load-state">Opening the archive...</p>}
         {error && <p className="gallery-load-state" role="alert">{error}</p>}
 
-        {!loading && !error && profiles.length === 0 && (
-          <p className="gallery-load-state">No historical figures have been published yet.</p>
+        {!loading && !error && filteredProfiles.length === 0 && (
+          <p className="gallery-load-state">
+            No figures found for this country.
+          </p>
         )}
 
-        {!loading && !error && (
+        {!loading && !error && filteredProfiles.length > 0 && (
           <div className="profile-grid">
-            {profiles.map((profile) => (
+            {filteredProfiles.map((profile) => (
               <ProfileCard key={profile.id} profile={profile} />
             ))}
           </div>

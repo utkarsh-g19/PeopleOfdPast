@@ -1,4 +1,4 @@
-{
+﻿{
     "name":  "@pot/api",
     "version":  "1.0.0",
     "private":  true,
@@ -11,7 +11,8 @@
                     "seed":  "tsx src/scripts/seed-personas.ts",
                     "backfill:tylo-vectors":  "tsx src/scripts/backfill-tylo-vectors.ts",
                     "repair:tylo-summaries":  "tsx src/scripts/repair-tylo-summaries.ts",
-                    "seed:archive-expansion":  "tsx src/scripts/seed-archive-expansion.ts"
+                    "seed:archive-expansion":  "tsx src/scripts/seed-archive-expansion.ts",
+                    "portraits:backfill":  "tsx src/scripts/backfill-persona-portraits.ts"
                 },
     "dependencies":  {
                          "@pot/shared":  "1.0.0",

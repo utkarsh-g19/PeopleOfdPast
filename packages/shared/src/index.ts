@@ -8,8 +8,7 @@ export const chatHistoryMessageSchema = z.object({
   content: z.string().min(1).max(2000),
 });
 
-export type ChatHistoryMessage =
-  z.infer<typeof chatHistoryMessageSchema>;
+export type ChatHistoryMessage = z.infer<typeof chatHistoryMessageSchema>;
 
 export const chatRequestSchema = z.object({
   experience: experienceSchema,
@@ -38,4 +37,7 @@ export interface PersonaSummary {
   description: string;
   experience: Experience;
   imageUrl?: string;
+  country?: string;
+  imageCredit?: string;
+  imageSourceUrl?: string;
 }

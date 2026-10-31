@@ -10,6 +10,8 @@ interface RecentPersona {
   name: string;
   shortBio: string;
   portraitUrl?: string;
+  portraitCredit?: string;
+  portraitSourceUrl?: string;
   deathDate: string;
 }
 
@@ -85,6 +87,8 @@ export default function RecentLegacies() {
                   description: person.shortBio,
                   experience: "ghost",
                   imageUrl: person.portraitUrl,
+                  imageCredit: person.portraitCredit,
+                  imageSourceUrl: person.portraitSourceUrl,
                 }}
               />
             </div>
@@ -100,3 +104,4 @@ export default function RecentLegacies() {
     </section>
   );
 }
+

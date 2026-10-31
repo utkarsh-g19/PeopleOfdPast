@@ -28,6 +28,7 @@ const personaSchema = new Schema(
     disciplines: [{ type: String }],
     portraitUrl: { type: String },
     portraitCredit: { type: String },
+    portraitSourceUrl: { type: String },
     featured: { type: Boolean, default: false },
     recentLegacy: { type: Boolean, default: false, index: true },
     deathDate: { type: Date, default: null, index: true },
@@ -47,5 +48,3 @@ export type PersonaDocument = InferSchemaType<typeof personaSchema>;
 export const Persona =
   mongoose.models.Persona ??
   mongoose.model("Persona", personaSchema);
-
-
