@@ -9,7 +9,8 @@
                     "start":  "node dist/server.js",
                     "typecheck":  "tsc -p tsconfig.json --noEmit",
                     "seed":  "tsx src/scripts/seed-personas.ts",
-                    "backfill:tylo-vectors":  "tsx src/scripts/backfill-tylo-vectors.ts"
+                    "backfill:tylo-vectors":  "tsx src/scripts/backfill-tylo-vectors.ts",
+                    "repair:tylo-summaries":  "tsx src/scripts/repair-tylo-summaries.ts"
                 },
     "dependencies":  {
                          "@pot/shared":  "1.0.0",

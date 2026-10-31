@@ -1,14 +1,22 @@
 ﻿import mongoose from "mongoose";
-import { env } from "../config/env.js";
 import { MemoryCompanion } from "../models/memory-companion.model.js";
 import { TyloMessage } from "../models/tylo-message.model.js";
-import {
-  completeCloudflareChat,
-  hasCloudflareAI,
-} from "./llm/cloudflare-ai.service.js";
 
 const SUMMARY_INTERVAL = 10;
 const BATCH_SIZE = 30;
+const MAX_SUMMARY_LENGTH = 12000;
+
+function formatUserNotes(
+  messages: Array<{ content: string; createdAt: Date }>,
+): string {
+  return messages
+    .map((message) => {
+      const date = new Date(message.createdAt).toISOString().slice(0, 10);
+      return `- [${date}] ${message.content.trim()}`;
+    })
+    .filter((line) => line.length > 0)
+    .join("\n");
+}
 
 export async function refreshTyloSummary(
   ownerSub: string,
@@ -42,104 +50,38 @@ export async function refreshTyloSummary(
 
   if (batch.length === 0) return;
 
-  const conversation = batch.map((item) =>
-    `${item.role === "user" ? "USER" : "COMPANION"}: ${item.content.slice(0, 1500)}`
-  ).join("\n\n");
+  // Only user-authored details become factual memory notes.
+  const userNotes = formatUserNotes(
+    batch
+      .filter((message) => message.role === "user")
+      .map((message) => ({
+        content: message.content,
+        createdAt: message.createdAt,
+      })),
+  );
 
-  const previousSummary = companion.memorySummary || "";
+  // Discard the old prompt-echo summary if one exists.
+  const existing = companion.memorySummary ?? "";
+  const previousNotes = existing.startsWith("PREVIOUS SUMMARY:")
+    ? ""
+    : existing.replace(
+        /^USER-SHARED DETAILS \(from saved conversations\)\n/,
+        "",
+      ).trim();
 
-  const prompt = `
-You are maintaining the long-term memory archive for a private TYLO companion.
+  const combinedNotes = [previousNotes, userNotes]
+    .filter(Boolean)
+    .join("\n");
 
-PREVIOUS SUMMARY:
-${previousSummary || "No previous summary exists."}
+  const clippedNotes = combinedNotes.length > MAX_SUMMARY_LENGTH - 100
+    ? combinedNotes.slice(-(MAX_SUMMARY_LENGTH - 100))
+    : combinedNotes;
 
-NEW CONVERSATION:
-${conversation}
+  const summary = clippedNotes
+    ? `USER-SHARED DETAILS (from saved conversations)\n${clippedNotes}`
+    : "";
 
-Update the previous summary using the new conversation.
-
-PRESERVE:
-1. Facts the user explicitly shared about the person.
-2. Important shared experiences and stories.
-3. Nicknames, favourite expressions and speaking habits.
-4. The user's preferences and important personal context.
-5. Corrections made by the user. Corrections supersede older conflicting details.
-6. Ongoing topics and meaningful conversational context.
-
-STRICT ACCURACY:
-- Never turn an assistant-generated statement into a fact about the real person.
-- Clearly distinguish user-provided facts from uncertain or unverified details.
-- Never invent missing details.
-- Do not infer personality, relationships or events.
-- Remove redundant information while preserving meaningful detail.
-- Retain names, dates and distinctive phrases accurately.
-
-Return a compact, well-organized factual memory summary.
-Use headings and bullet points. Do not include conversational filler.
-`;
-
-  let summary: string;
-
-  if (hasCloudflareAI()) {
-    summary = await completeCloudflareChat(
-      [
-        {
-          role: "system",
-          content: "You are an accurate memory archivist. Never fabricate facts.",
-        },
-        { role: "user", content: prompt },
-      ],
-      { temperature: 0.15, maxTokens: 700 },
-    );
-  } else {
-    const baseUrl = env.MODEL_BASE_URL.replace(/\/+$/, "");
-
-    const response = await fetch(`${baseUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: env.MODEL_NAME,
-        messages: [
-          {
-            role: "system",
-            content: "You are an accurate memory archivist. Never fabricate facts.",
-          },
-          { role: "user", content: prompt },
-        ],
-        stream: false,
-        think: false,
-        keep_alive: "10m",
-        options: {
-          temperature: 0.15,
-          num_ctx: 4096,
-          num_predict: 700,
-        },
-      }),
-      signal: AbortSignal.timeout(120000),
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `TYLO summary failed (${response.status}): ${await response.text()}`,
-      );
-    }
-
-    const result = await response.json() as {
-      message?: { content?: unknown };
-    };
-
-    summary =
-      typeof result.message?.content === "string"
-        ? result.message.content.trim()
-        : "";
-  }
-
-  if (!summary.trim()) {
-    throw new Error("TYLO generated an empty memory summary.");
-  }
-
-  const updated = await MemoryCompanion.findOneAndUpdate(
+  const result = await MemoryCompanion.updateOne(
     {
       _id: companionId,
       ownerSub,
@@ -147,16 +89,15 @@ Use headings and bullet points. Do not include conversational filler.
     },
     {
       $set: {
-        memorySummary: summary.slice(0, 12000),
+        memorySummary: summary,
         summaryMessageCount: previousCount + batch.length,
       },
     },
-    { new: true },
   );
 
-  if (updated) {
+  if (result.modifiedCount > 0) {
     console.info(
-      `[TYLO memory] Summary updated for ${companion.name}: ` +
+      `[TYLO memory] Reliable notes updated for ${companion.name}: ` +
       `${previousCount + batch.length} messages processed.`,
     );
   }
