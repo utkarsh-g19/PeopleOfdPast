@@ -1,4 +1,6 @@
-﻿import { connectDatabase, disconnectDatabase } from "../config/database.js";
+﻿import mongoose from "mongoose";
+import { connectDatabase, disconnectDatabase } from "../config/database.js";
+import { TyloMessage } from "../models/tylo-message.model.js";
 import { TyloMemory } from "../models/tylo-memory.model.js";
 import {
   embedDocument,
@@ -6,68 +8,115 @@ import {
 } from "../services/embeddings/embedding.service.js";
 import { hasCloudflareAI } from "../services/llm/cloudflare-ai.service.js";
 
-async function migrateVectors(): Promise<void> {
+async function backfillFromTranscripts(): Promise<void> {
   if (!hasCloudflareAI()) {
-    throw new Error(
-      "Cloudflare credentials are required. Set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN.",
-    );
+    throw new Error("Cloudflare credentials are missing.");
   }
 
   await connectDatabase();
 
   const targetModel = getCurrentEmbeddingModel();
 
-  const memories = await TyloMemory.find({
-    embeddingModel: { $ne: targetModel },
-  })
-    .select("_id content embeddingModel")
+  const messages = await TyloMessage.find({})
+    .sort({ ownerSub: 1, companionId: 1, createdAt: 1, _id: 1 })
     .lean();
 
-  console.info(`[TYLO migration] Found ${memories.length} memories to re-embed.`);
-  console.info(`[TYLO migration] Target: ${targetModel}`);
+  console.info(`[TYLO backfill] Found ${messages.length} transcript messages.`);
+  console.info(`[TYLO backfill] Embedding model: ${targetModel}`);
 
-  let migrated = 0;
+  const pendingUsers = new Map<string, (typeof messages)[number]>();
+
+  let created = 0;
+  let skipped = 0;
   let failed = 0;
+  let unmatched = 0;
 
-  for (const memory of memories) {
+  for (const message of messages) {
+    const companionId = message.companionId.toString();
+    const groupKey = `${message.ownerSub}:${companionId}`;
+
+    if (message.role === "user") {
+      if (pendingUsers.has(groupKey)) {
+        unmatched++;
+      }
+
+      pendingUsers.set(groupKey, message);
+      continue;
+    }
+
+    const userMessage = pendingUsers.get(groupKey);
+
+    if (!userMessage) {
+      unmatched++;
+      continue;
+    }
+
+    pendingUsers.delete(groupKey);
+
+    const sourceKey =
+      `${userMessage._id.toString()}:${message._id.toString()}`;
+
+    const content =
+      `User: ${userMessage.content}\n` +
+      `Companion: ${message.content}`;
+
     try {
+      const existing = await TyloMemory.findOne({ sourceKey })
+        .select("embeddingModel")
+        .lean();
+
+      if (existing?.embeddingModel === targetModel) {
+        skipped++;
+        continue;
+      }
+
       const embedding = await embedDocument(
         "TYLO conversation memory",
-        memory.content,
+        content,
       );
 
       await TyloMemory.updateOne(
-        { _id: memory._id },
+        { sourceKey },
         {
           $set: {
-            embedding,
+            ownerSub: userMessage.ownerSub,
+            companionId: new mongoose.Types.ObjectId(companionId),
+            sourceKey,
             embeddingModel: targetModel,
+            content,
+            embedding,
+            turnAt: userMessage.createdAt,
           },
         },
+        { upsert: true },
       );
 
-      migrated++;
+      created++;
 
-      if (migrated % 5 === 0 || migrated === memories.length) {
-        console.info(`[TYLO migration] ${migrated}/${memories.length} migrated.`);
-      }
+      console.info(
+        `[TYLO backfill] Embedded exchange ${created}: ${userMessage._id}`,
+      );
     } catch (error: unknown) {
       failed++;
       console.error(
-        `[TYLO migration] Failed record ${memory._id}:`,
+        `[TYLO backfill] Failed exchange ${sourceKey}:`,
         error instanceof Error ? error.message : error,
       );
     }
   }
 
-  console.info("\n[TYLO migration complete]");
-  console.info(`Migrated: ${migrated}`);
+  unmatched += pendingUsers.size;
+
+  console.info("\n[TYLO backfill complete]");
+  console.info(`Created/re-embedded: ${created}`);
+  console.info(`Already current: ${skipped}`);
   console.info(`Failed: ${failed}`);
+  console.info(`Unmatched transcript messages: ${unmatched}`);
 }
 
-migrateVectors()
+backfillFromTranscripts()
   .catch((error: unknown) => {
-    console.error("[TYLO migration fatal]", error);
+    console.error("[TYLO backfill fatal]", error);
     process.exitCode = 1;
   })
   .finally(async () => {

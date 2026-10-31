@@ -13,9 +13,7 @@ interface ChatOptions {
 interface CloudflareChunk {
   choices?: Array<{
     message?: { content?: unknown };
-    delta?: {
-      content?: unknown;
-    };
+    delta?: { content?: unknown };
   }>;
   response?: unknown;
   error?: { message?: string } | string;
@@ -26,9 +24,7 @@ export function hasCloudflareAI(): boolean {
   const hasToken = Boolean(env.CLOUDFLARE_API_TOKEN);
 
   if (hasAccount !== hasToken) {
-    throw new Error(
-      "Cloudflare configuration is incomplete. Set both Cloudflare credentials.",
-    );
+    throw new Error("Both Cloudflare account ID and API token are required.");
   }
 
   return hasAccount && hasToken;
@@ -42,7 +38,7 @@ function getEndpoint(): string {
   return `https://api.cloudflare.com/client/v4/accounts/${env.CLOUDFLARE_ACCOUNT_ID}/ai/v1/chat/completions`;
 }
 
-function getHeaders(): Record<string, string> {
+function getHeaders(accept = "text/event-stream"): Record<string, string> {
   if (!env.CLOUDFLARE_API_TOKEN) {
     throw new Error("Cloudflare API token is missing.");
   }
@@ -50,17 +46,12 @@ function getHeaders(): Record<string, string> {
   return {
     Authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
     "Content-Type": "application/json",
-    Accept: "text/event-stream",
+    Accept: accept,
   };
 }
 
 function extractText(value: unknown): string {
   if (typeof value === "string") return value;
-
-  // Cloudflare has occasionally emitted numeric content tokens.
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
-  }
 
   if (Array.isArray(value)) {
     return value.map((part) => {
@@ -83,12 +74,9 @@ function extractText(value: unknown): string {
 }
 
 function getChunkText(chunk: CloudflareChunk): string {
-  const delta = chunk.choices?.[0]?.delta;
-  const message = chunk.choices?.[0]?.message;
-
   return (
-    extractText(delta?.content) ||
-    extractText(message?.content) ||
+    extractText(chunk.choices?.[0]?.delta?.content) ||
+    extractText(chunk.choices?.[0]?.message?.content) ||
     extractText(chunk.response)
   );
 }
@@ -99,15 +87,12 @@ export async function completeCloudflareChat(
 ): Promise<string> {
   const response = await fetch(getEndpoint(), {
     method: "POST",
-    headers: {
-      ...getHeaders(),
-      Accept: "application/json",
-    },
+    headers: getHeaders("application/json"),
     body: JSON.stringify({
       model: env.CLOUDFLARE_CHAT_MODEL,
       messages,
       stream: false,
-      temperature: options.temperature ?? 0.7,
+      temperature: options.temperature ?? 0.65,
       max_tokens: options.maxTokens ?? 400,
       chat_template_kwargs: {
         enable_thinking: false,
@@ -126,15 +111,44 @@ export async function completeCloudflareChat(
   const answer = getChunkText(result).trim();
 
   if (!answer) {
-    throw new Error("Cloudflare AI returned no visible answer.");
+    throw new Error("Cloudflare AI returned an empty answer.");
   }
 
   return answer;
 }
 
+function emergencyReply(messages: ModelMessage[]): string {
+  const system = messages.find((item) => item.role === "system")?.content ?? "";
+
+  if (
+    system.includes("LONG-TERM NOTES") ||
+    system.includes("PROFILE DETAILS SHARED BY THE USER")
+  ) {
+    return "I'm here with you. I don't want to guess about something important. Tell me a little more, or ask me again in a moment.";
+  }
+
+  return "I want to give you a thoughtful, accurate answer rather than guess. Ask me that once more in a moment.";
+}
+
+function oneChunkStream(text: string): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(
+        encoder.encode(
+          JSON.stringify({ message: { content: text } }) + "\n",
+        ),
+      );
+      controller.close();
+    },
+  });
+}
+
 function normalizeCloudflareStream(
   body: ReadableStream<Uint8Array>,
-  fallback: () => Promise<string>,
+  retry: () => Promise<string>,
+  safeReply: string,
 ): ReadableStream<Uint8Array> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
@@ -144,13 +158,12 @@ function normalizeCloudflareStream(
     start(controller) {
       async function pump(): Promise<void> {
         let buffer = "";
-        let emittedTokens = 0;
+        let outputLength = 0;
 
         function emit(text: string): void {
           if (!text) return;
 
-          emittedTokens += text.length;
-
+          outputLength += text.length;
           controller.enqueue(
             encoder.encode(
               JSON.stringify({ message: { content: text } }) + "\n",
@@ -172,17 +185,17 @@ function normalizeCloudflareStream(
           try {
             chunk = JSON.parse(data) as CloudflareChunk;
           } catch {
-            console.warn("[Cloudflare AI] Ignored an unparseable SSE event.");
+            console.warn("[Cloudflare AI] Ignored an invalid stream event.");
             return;
           }
 
           if (chunk.error) {
-            const message =
+            const detail =
               typeof chunk.error === "string"
                 ? chunk.error
-                : chunk.error.message || "Cloudflare stream error";
+                : chunk.error.message || "Unknown provider error";
 
-            throw new Error(message);
+            throw new Error(detail);
           }
 
           emit(getChunkText(chunk));
@@ -213,27 +226,39 @@ function normalizeCloudflareStream(
             }
           }
 
-          if (emittedTokens === 0) {
-            console.warn(
-              "[Cloudflare AI] Stream completed without visible text. Retrying once without streaming.",
-            );
+          if (outputLength === 0) {
+            console.warn("[Cloudflare AI] Empty stream; retrying without streaming.");
 
-            const answer = await fallback();
-            emit(answer);
+            try {
+              emit(await retry());
+            } catch (error: unknown) {
+              console.error("[Cloudflare AI] Retry failed:", error);
+              emit(safeReply);
+            }
           }
 
-          if (emittedTokens === 0) {
-            throw new Error("Cloudflare returned an empty answer after retry.");
-          }
+          if (outputLength === 0) emit(safeReply);
 
           console.info(
-            `[Cloudflare AI] Completed response: ${emittedTokens} characters.`,
+            `[Cloudflare AI] Completed response: ${outputLength} characters.`,
           );
 
           controller.close();
         } catch (error: unknown) {
-          console.error("[Cloudflare AI stream]", error);
-          controller.error(error);
+          console.error("[Cloudflare AI] Stream interrupted:", error);
+
+          if (outputLength === 0) {
+            try {
+              emit(await retry());
+            } catch (retryError: unknown) {
+              console.error("[Cloudflare AI] Recovery request failed:", retryError);
+              emit(safeReply);
+            }
+          } else {
+            emit("\n\nI may have lost part of that thought. Ask me to continue.");
+          }
+
+          controller.close();
         } finally {
           reader.releaseLock();
         }
@@ -248,36 +273,57 @@ export async function openCloudflareChatStream(
   messages: ModelMessage[],
   options: ChatOptions = {},
 ): Promise<ReadableStream<Uint8Array>> {
-  const requestBody = {
-    model: env.CLOUDFLARE_CHAT_MODEL,
-    messages,
-    stream: true,
-    temperature: options.temperature ?? 0.7,
-    max_tokens: options.maxTokens ?? 400,
-    chat_template_kwargs: {
-      enable_thinking: false,
-    },
-  };
+  const safeReply = emergencyReply(messages);
+  const retry = () => completeCloudflareChat(messages, options);
 
-  const response = await fetch(getEndpoint(), {
-    method: "POST",
-    headers: getHeaders(),
-    body: JSON.stringify(requestBody),
-    signal: AbortSignal.timeout(120000),
-  });
+  try {
+    const response = await fetch(getEndpoint(), {
+      method: "POST",
+      headers: getHeaders(),
+      body: JSON.stringify({
+        model: env.CLOUDFLARE_CHAT_MODEL,
+        messages,
+        stream: true,
+        temperature: options.temperature ?? 0.65,
+        max_tokens: options.maxTokens ?? 400,
+        chat_template_kwargs: {
+          enable_thinking: false,
+        },
+      }),
+      signal: AbortSignal.timeout(120000),
+    });
 
-  if (!response.ok) {
-    throw new Error(
-      `Cloudflare AI stream failed (${response.status}): ${await response.text()}`,
-    );
+    if (!response.ok) {
+      console.error(
+        `[Cloudflare AI] Stream request failed (${response.status}): ${await response.text()}`,
+      );
+
+      try {
+        return oneChunkStream(await retry());
+      } catch (error: unknown) {
+        console.error("[Cloudflare AI] Non-streaming retry failed:", error);
+        return oneChunkStream(safeReply);
+      }
+    }
+
+    if (!response.body) {
+      try {
+        return oneChunkStream(await retry());
+      } catch (error: unknown) {
+        console.error("[Cloudflare AI] Recovery request failed:", error);
+        return oneChunkStream(safeReply);
+      }
+    }
+
+    return normalizeCloudflareStream(response.body, retry, safeReply);
+  } catch (error: unknown) {
+    console.error("[Cloudflare AI] Could not open model stream:", error);
+
+    try {
+      return oneChunkStream(await retry());
+    } catch (retryError: unknown) {
+      console.error("[Cloudflare AI] Recovery request failed:", retryError);
+      return oneChunkStream(safeReply);
+    }
   }
-
-  if (!response.body) {
-    throw new Error("Cloudflare AI did not provide a response stream.");
-  }
-
-  return normalizeCloudflareStream(
-    response.body,
-    () => completeCloudflareChat(messages, options),
-  );
 }
