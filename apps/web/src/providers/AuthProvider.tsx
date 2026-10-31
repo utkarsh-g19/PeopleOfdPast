@@ -19,6 +19,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       authorizationParams={{
         redirect_uri: `${window.location.origin}/`,
         audience,
+        scope: "openid profile email read:profile",
       }}
     >
       {children}

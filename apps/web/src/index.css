@@ -1207,3 +1207,869 @@ body {
     display: none;
   }
 }
+.auth-error {
+  position: absolute;
+  top: 85px;
+  right: 20px;
+  z-index: 100;
+  max-width: 420px;
+  padding: 14px;
+  color: #ffd0c5;
+  background: #351820;
+  border: 1px solid #f18437;
+  border-radius: 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+/* Live historical portrait */
+.portrait-art {
+  overflow: hidden;
+}
+
+.portrait-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(1);
+  transition: filter 350ms ease, transform 500ms ease;
+}
+
+.profile-card:hover .portrait-image,
+.profile-card:focus-within .portrait-image {
+  filter: grayscale(0);
+  transform: scale(1.04);
+}
+
+.gallery-load-state {
+  padding: 1.5rem 0;
+  color: #d6bda2;
+}
+
+/* Historical conversation */
+.persona-chat-page {
+  max-width: 980px;
+  margin-inline: auto;
+}
+
+.chat-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.chat-persona-header {
+  margin-bottom: 2rem;
+}
+
+.chat-disclaimer {
+  color: #d0a98a;
+  font-size: 0.85rem;
+  margin-top: 0.8rem;
+}
+
+.chat-panel {
+  border: 1px solid rgba(220, 157, 97, 0.3);
+  border-radius: 18px;
+  background: rgba(20, 17, 17, 0.82);
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22);
+}
+
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 330px;
+  max-height: 580px;
+  overflow-y: auto;
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+.chat-welcome {
+  margin: auto;
+  max-width: 560px;
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.chat-welcome h2 {
+  margin: 0.8rem 0;
+}
+
+.chat-welcome p {
+  color: #d2c0ae;
+  line-height: 1.7;
+}
+
+.chat-message {
+  width: fit-content;
+  max-width: min(85%, 680px);
+  padding: 1rem 1.15rem;
+  border: 1px solid rgba(220, 157, 97, 0.2);
+  border-radius: 14px;
+}
+
+.chat-message--assistant {
+  align-self: flex-start;
+  background: rgba(104, 66, 50, 0.24);
+}
+
+.chat-message--user {
+  align-self: flex-end;
+  background: rgba(190, 105, 45, 0.17);
+}
+
+.chat-message-role {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #e6a86d;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.chat-message p {
+  margin: 0;
+  color: #f2e6d9;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.chat-thinking {
+  opacity: 0.75;
+  font-style: italic;
+}
+
+.chat-error {
+  margin: 0 1.5rem 1rem;
+  color: #ffb1a7;
+}
+
+.chat-form {
+  display: flex;
+  align-items: stretch;
+  gap: 0.8rem;
+  padding: 1rem;
+  border-top: 1px solid rgba(220, 157, 97, 0.2);
+}
+
+.chat-input {
+  flex: 1;
+  min-width: 0;
+  resize: vertical;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(220, 157, 97, 0.28);
+  border-radius: 12px;
+  background: rgba(10, 9, 9, 0.72);
+  color: #f5eadd;
+  font: inherit;
+}
+
+.chat-input:focus {
+  outline: 2px solid rgba(230, 153, 82, 0.5);
+  outline-offset: 2px;
+}
+
+.chat-send-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  align-self: flex-end;
+  cursor: pointer;
+}
+
+.chat-send-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat-sources {
+  margin-top: 1.5rem;
+  padding: 1.2rem 1.4rem;
+  border-left: 3px solid #c47a43;
+  background: rgba(104, 66, 50, 0.16);
+}
+
+.chat-sources h3 {
+  margin-top: 0;
+}
+
+.chat-sources li {
+  margin: 0.45rem 0;
+}
+
+.chat-sources a {
+  color: #e6b17e;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  .chat-form {
+    flex-direction: column;
+  }
+
+  .chat-send-button {
+    align-self: stretch;
+  }
+
+  .chat-message {
+    max-width: 95%;
+  }
+}
+
+/* TYLO private memory vault */
+.tylo-create-panel {
+  margin: 2.5rem 0;
+  padding: clamp(1.2rem, 3vw, 2rem);
+  border: 1px solid rgba(220, 157, 97, 0.3);
+  border-radius: 18px;
+  background: rgba(35, 25, 24, 0.72);
+}
+
+.tylo-create-panel h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0;
+}
+
+.tylo-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 720px;
+}
+
+.tylo-form label {
+  display: grid;
+  gap: 0.5rem;
+  color: #e5c5a5;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.tylo-form input,
+.tylo-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(220, 157, 97, 0.3);
+  border-radius: 10px;
+  background: rgba(10, 9, 9, 0.75);
+  color: #f5eadd;
+  font: inherit;
+  font-weight: 400;
+}
+
+.tylo-form input:focus,
+.tylo-form textarea:focus {
+  outline: 2px solid rgba(230, 153, 82, 0.5);
+  outline-offset: 2px;
+}
+
+.tylo-form textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.tylo-vault-list {
+  margin-top: 3rem;
+}
+
+.tylo-companion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 1.2rem;
+}
+
+.tylo-companion-card {
+  padding: 1.4rem;
+  border: 1px solid rgba(220, 157, 97, 0.28);
+  border-radius: 16px;
+  background: rgba(35, 25, 24, 0.65);
+}
+
+.tylo-companion-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tylo-companion-heading h3 {
+  margin: 0.35rem 0 0.7rem;
+}
+
+.tylo-companion-card > p {
+  color: #d8c7b7;
+  line-height: 1.65;
+}
+
+.tylo-memory-count {
+  color: #e6a86d !important;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.tylo-delete-button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(220, 120, 100, 0.3);
+  border-radius: 10px;
+  background: rgba(120, 45, 40, 0.15);
+  color: #e9a99a;
+  cursor: pointer;
+}
+
+.tylo-memory-entry {
+  margin: 1rem 0;
+  padding: 0.9rem 1rem;
+  border-left: 2px solid #c47a43;
+  background: rgba(10, 9, 9, 0.35);
+}
+
+.tylo-memory-entry h4 {
+  margin: 0 0 0.4rem;
+  color: #efbd8e;
+}
+
+.tylo-memory-entry p {
+  margin: 0;
+  color: #e5d6c8;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.tylo-memory-form {
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(220, 157, 97, 0.2);
+}
+
+.tylo-form-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.tylo-form button:disabled,
+.tylo-delete-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.tylo-error {
+  padding: 0.9rem 1rem;
+  border-left: 3px solid #d16d5e;
+  color: #ffb1a7;
+  background: rgba(120, 45, 40, 0.16);
+}
+
+.tylo-privacy-note {
+  margin-top: 2rem;
+  color: #c9a98c;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* TYLO structured memory profile */
+.tylo-basic-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.tylo-profile-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.2rem;
+  padding: 1.2rem 0;
+  border-top: 1px solid rgba(220, 157, 97, 0.2);
+}
+
+.tylo-profile-intro h3 {
+  margin: 0.5rem 0 0.25rem;
+}
+
+.tylo-profile-intro p,
+.tylo-profile-section summary small {
+  color: #c9ad98;
+  font-size: 0.85rem;
+}
+
+.tylo-profile-progress {
+  padding: 0.5rem 0.8rem;
+  border: 1px solid rgba(220, 157, 97, 0.35);
+  border-radius: 20px;
+  color: #efb477;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.tylo-profile-sections {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.tylo-profile-section {
+  border: 1px solid rgba(220, 157, 97, 0.25);
+  border-radius: 12px;
+  background: rgba(10, 9, 9, 0.24);
+}
+
+.tylo-profile-section summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.tylo-profile-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.tylo-profile-section summary strong,
+.tylo-profile-section summary small {
+  display: block;
+}
+
+.tylo-profile-section summary strong {
+  color: #f1d9c2;
+  font-size: 0.95rem;
+}
+
+.tylo-profile-section summary small {
+  margin-top: 0.3rem;
+  font-weight: 400;
+}
+
+.tylo-profile-section[open] summary {
+  border-bottom: 1px solid rgba(220, 157, 97, 0.2);
+}
+
+.tylo-profile-section[open] summary > svg {
+  transform: rotate(180deg);
+}
+
+.tylo-profile-section summary > svg {
+  flex: 0 0 auto;
+  color: #e6a86d;
+  transition: transform 180ms ease;
+}
+
+.tylo-profile-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 1.1rem;
+}
+
+.tylo-saved-profile {
+  margin: 1rem 0;
+  border-top: 1px solid rgba(220, 157, 97, 0.18);
+  border-bottom: 1px solid rgba(220, 157, 97, 0.18);
+}
+
+.tylo-saved-profile summary {
+  padding: 0.8rem 0;
+  color: #e6b17e;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.tylo-saved-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+  padding-bottom: 1rem;
+}
+
+.tylo-saved-profile-grid strong {
+  color: #efbd8e;
+  font-size: 0.8rem;
+}
+
+.tylo-saved-profile-grid p {
+  margin: 0.3rem 0 0;
+  color: #e5d6c8;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 650px) {
+  .tylo-basic-fields,
+  .tylo-profile-fields,
+  .tylo-saved-profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* TYLO persistent conversations */
+.tylo-chat {
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(220, 157, 97, 0.2);
+}
+
+.tylo-chat-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+}
+
+.tylo-chat-panel {
+  margin-top: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(220, 157, 97, 0.28);
+  border-radius: 14px;
+  background: rgba(12, 10, 10, 0.48);
+}
+
+.tylo-chat-heading {
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid rgba(220, 157, 97, 0.18);
+}
+
+.tylo-chat-heading h4 {
+  margin: 0.4rem 0;
+  color: #f1d9c2;
+  font-size: 1.15rem;
+}
+
+.tylo-chat-heading p {
+  margin: 0;
+  color: #c9ad98;
+  font-size: 0.85rem;
+}
+
+.tylo-chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  max-height: 420px;
+  min-height: 150px;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.tylo-chat-empty,
+.tylo-chat-thinking {
+  color: #c9ad98;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.tylo-chat-message {
+  width: fit-content;
+  max-width: 88%;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(220, 157, 97, 0.2);
+  border-radius: 12px;
+}
+
+.tylo-chat-message--user {
+  align-self: flex-end;
+  background: rgba(190, 105, 45, 0.16);
+}
+
+.tylo-chat-message--assistant {
+  align-self: flex-start;
+  background: rgba(104, 66, 50, 0.22);
+}
+
+.tylo-chat-message > span {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: #e6a86d;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.tylo-chat-message p {
+  margin: 0;
+  color: #f2e6d9;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.tylo-chat-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.7rem;
+  padding: 0.9rem;
+  border-top: 1px solid rgba(220, 157, 97, 0.18);
+}
+
+.tylo-chat-form textarea {
+  flex: 1;
+  min-width: 0;
+  resize: vertical;
+  padding: 0.8rem;
+  border: 1px solid rgba(220, 157, 97, 0.28);
+  border-radius: 10px;
+  background: rgba(10, 9, 9, 0.75);
+  color: #f5eadd;
+  font: inherit;
+}
+
+.tylo-chat-form button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tylo-chat-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+  .tylo-chat-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tylo-chat-form button {
+    align-self: flex-end;
+  }
+}
+
+/* TYLO editable companion profile */
+.tylo-profile-view {
+  margin: 1rem 0;
+  padding: 0.9rem 0;
+  border-top: 1px solid rgba(220, 157, 97, 0.18);
+}
+
+.tylo-profile-view-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.tylo-profile-view-heading h4 {
+  margin: 0;
+  color: #efbd8e;
+}
+
+.tylo-profile-editor {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid rgba(220, 157, 97, 0.25);
+  border-radius: 12px;
+  background: rgba(10, 9, 9, 0.25);
+}
+
+.tylo-profile-description {
+  display: grid;
+  gap: 0.5rem;
+  color: #e5c5a5;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.tylo-profile-description textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.9rem;
+  border: 1px solid rgba(220, 157, 97, 0.3);
+  border-radius: 10px;
+  background: rgba(10, 9, 9, 0.75);
+  color: #f5eadd;
+  font: inherit;
+  font-weight: 400;
+}
+
+.tylo-profile-editor .tylo-profile-fields {
+  padding: 0.8rem;
+}
+
+.tylo-profile-editor .tylo-profile-section summary {
+  color: #efbd8e;
+}
+
+
+/* Ghost Gallery historical biography */
+.persona-story {
+  margin: 2rem 0 3rem;
+}
+
+.persona-story-overview {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.75fr) 1.5fr;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  align-items: start;
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 1px solid rgba(220, 157, 97, 0.28);
+  border-radius: 18px;
+  background: rgba(35, 25, 24, 0.65);
+}
+
+.persona-story-portrait {
+  margin: 0;
+}
+
+.persona-story-portrait img {
+  display: block;
+  width: 100%;
+  max-height: 340px;
+  object-fit: cover;
+  border: 5px solid rgba(220, 157, 97, 0.3);
+  border-radius: 12px;
+  filter: grayscale(1);
+}
+
+.persona-story-portrait figcaption {
+  margin-top: 0.55rem;
+  color: #bda58f;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.persona-story-intro h2 {
+  margin: 0.65rem 0;
+}
+
+.persona-story-intro > p {
+  color: #ddc9b6;
+  line-height: 1.75;
+}
+
+.persona-story-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 1.2rem 0;
+}
+
+.persona-story-facts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #e6b17e;
+  font-size: 0.85rem;
+}
+
+.persona-disciplines {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.2rem;
+}
+
+.persona-disciplines span {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid rgba(220, 157, 97, 0.25);
+  border-radius: 30px;
+  color: #e7c4a4;
+  font-size: 0.76rem;
+}
+
+.persona-biography {
+  max-width: 820px;
+  margin: 3rem auto;
+}
+
+.persona-biography h3,
+.persona-research h3 {
+  margin: 0.65rem 0 1rem;
+}
+
+.persona-biography > p {
+  color: #e0d0c0;
+  font-size: 1rem;
+  line-height: 1.9;
+  margin: 0 0 1.2rem;
+}
+
+.persona-research {
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 1px solid rgba(220, 157, 97, 0.25);
+  border-radius: 16px;
+  background: rgba(35, 25, 24, 0.48);
+}
+
+.persona-research > p {
+  color: #c9ad98;
+  line-height: 1.6;
+}
+
+.persona-source-list {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1.2rem;
+}
+
+.persona-source {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(220, 157, 97, 0.2);
+  border-radius: 10px;
+  color: #edc39e;
+  text-decoration: none;
+  background: rgba(10, 9, 9, 0.28);
+}
+
+.persona-source:hover {
+  border-color: rgba(220, 157, 97, 0.55);
+  background: rgba(104, 66, 50, 0.22);
+}
+
+.persona-source strong,
+.persona-source small {
+  display: block;
+}
+
+.persona-source strong {
+  font-size: 0.9rem;
+}
+
+.persona-source small {
+  margin-top: 0.3rem;
+  color: #bda58f;
+  text-transform: capitalize;
+}
+
+.persona-story-loading,
+.persona-story-error {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  color: #d9bea4;
+}
+
+@media (max-width: 650px) {
+  .persona-story-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .persona-story-portrait img {
+    max-width: 280px;
+    max-height: 340px;
+    margin-inline: auto;
+  }
+}

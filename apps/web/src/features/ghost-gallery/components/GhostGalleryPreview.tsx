@@ -1,9 +1,11 @@
 ﻿import { Link } from "react-router";
 import { ArrowRight, Ghost } from "lucide-react";
-import { historicalProfiles } from "../data/profiles.js";
+import { useHistoricalProfiles } from "../hooks/useHistoricalProfiles.js";
 import ProfileCard from "./ProfileCard.js";
 
 export default function GhostGalleryPreview() {
+  const { profiles, loading, error } = useHistoricalProfiles();
+
   return (
     <section className="gallery-section" id="ghost-gallery">
       <div className="section-heading">
@@ -18,11 +20,16 @@ export default function GhostGalleryPreview() {
         </Link>
       </div>
 
-      <div className="profile-grid">
-        {historicalProfiles.map((profile) => (
-          <ProfileCard key={profile.id} profile={profile} />
-        ))}
-      </div>
+      {loading && <p className="gallery-load-state">Opening the archive...</p>}
+      {error && <p className="gallery-load-state" role="alert">{error}</p>}
+
+      {!loading && !error && (
+        <div className="profile-grid">
+          {profiles.slice(0, 3).map((profile) => (
+            <ProfileCard key={profile.id} profile={profile} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

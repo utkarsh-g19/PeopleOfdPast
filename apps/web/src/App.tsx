@@ -2,6 +2,7 @@
 import SiteHeader from "./components/layout/SiteHeader.js";
 import HomePage from "./pages/HomePage.js";
 import GhostGalleryPage from "./pages/GhostGalleryPage.js";
+import PersonaChatPage from "./pages/PersonaChatPage.js";
 import TyloPage from "./pages/TyloPage.js";
 
 export default function App() {
@@ -12,6 +13,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/ghost-gallery" element={<GhostGalleryPage />} />
+        <Route path="/ghost-gallery/:slug" element={<PersonaChatPage />} />
         <Route path="/tylo" element={<TyloPage />} />
       </Routes>
 

@@ -1,4 +1,5 @@
-﻿import type { PersonaSummary } from "@pot/shared";
+﻿import { Link } from "react-router";
+import type { PersonaSummary } from "@pot/shared";
 
 interface ProfileCardProps {
   profile: PersonaSummary;
@@ -16,21 +17,32 @@ export default function ProfileCard({ profile }: ProfileCardProps) {
       <div
         className={`portrait-art portrait-art--${profile.id}`}
         role="img"
-        aria-label={`Portrait placeholder for ${profile.name}`}
+        aria-label={`Portrait of ${profile.name}`}
       >
-        <div className="portrait-halo" />
-        <div className="portrait-head" />
-        <div className="portrait-body" />
-        <span className="portrait-monogram">{initials}</span>
+        {profile.imageUrl ? (
+          <img
+            className="portrait-image"
+            src={profile.imageUrl}
+            alt={profile.name}
+            loading="lazy"
+          />
+        ) : (
+          <>
+            <div className="portrait-halo" />
+            <div className="portrait-head" />
+            <div className="portrait-body" />
+            <span className="portrait-monogram">{initials}</span>
+          </>
+        )}
       </div>
 
       <div className="profile-card-content">
         <span className="profile-category">HISTORICAL FIGURE</span>
         <h3>{profile.name}</h3>
         <p>{profile.description}</p>
-        <button className="text-link" type="button">
+        <Link className="text-link" to={`/ghost-gallery/${profile.id}`}>
           Explore story <span aria-hidden="true">↗</span>
-        </button>
+        </Link>
       </div>
     </article>
   );
