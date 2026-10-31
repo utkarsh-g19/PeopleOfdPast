@@ -29,6 +29,8 @@ const personaSchema = new Schema(
     portraitUrl: { type: String },
     portraitCredit: { type: String },
     featured: { type: Boolean, default: false },
+    recentLegacy: { type: Boolean, default: false, index: true },
+    deathDate: { type: Date, default: null, index: true },
     status: {
       type: String,
       enum: ["draft", "published"],
@@ -45,4 +47,5 @@ export type PersonaDocument = InferSchemaType<typeof personaSchema>;
 export const Persona =
   mongoose.models.Persona ??
   mongoose.model("Persona", personaSchema);
+
 

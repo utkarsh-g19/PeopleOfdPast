@@ -2073,3 +2073,67 @@ body {
     margin-inline: auto;
   }
 }
+
+/* Recent Legacies */
+.recent-legacies-section {
+  margin: 42px 0 76px;
+  padding: 34px;
+  border: 1px solid #e8bd6735;
+  background:
+    radial-gradient(ellipse at 85% 10%, #74374730, transparent 45%),
+    linear-gradient(145deg, #21191f, #171317);
+}
+
+.recent-legacies-count {
+  color: var(--candle);
+  border: 1px solid #e8bd6745;
+  padding: 9px 13px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  white-space: nowrap;
+}
+
+.recent-legacies-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.recent-legacy-item {
+  min-width: 0;
+}
+
+.recent-legacy-date {
+  color: var(--candle);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+
+.recent-legacies-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.archive-all-section {
+  margin-top: 48px;
+}
+
+@media (max-width: 760px) {
+  .recent-legacies-section {
+    padding: 22px 16px;
+  }
+
+  .recent-legacies-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .recent-legacies-grid {
+    grid-template-columns: 1fr;
+  }
+}

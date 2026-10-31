@@ -3,16 +3,20 @@ import { Persona } from "../models/persona.model.js";
 
 export const listPersonas: RequestHandler = async (req, res, next) => {
   try {
+    const isRecent = req.query.recent === "true";
+
     const filter: Record<string, unknown> = {
       status: "published",
+      recentLegacy: isRecent ? true : { $ne: true },
     };
 
     if (typeof req.query.q === "string" && req.query.q.trim()) {
       const search = req.query.q.trim();
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
       filter.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { shortBio: { $regex: search, $options: "i" } },
+        { name: { $regex: escaped, $options: "i" } },
+        { shortBio: { $regex: escaped, $options: "i" } },
       ];
     }
 
@@ -25,7 +29,11 @@ export const listPersonas: RequestHandler = async (req, res, next) => {
     }
 
     const personas = await Persona.find(filter)
-      .sort({ featured: -1, name: 1 })
+      .sort(
+        isRecent
+          ? { deathDate: -1, name: 1 }
+          : { featured: -1, name: 1 },
+      )
       .lean();
 
     res.status(200).json({
@@ -53,10 +61,7 @@ export const getPersonaBySlug: RequestHandler = async (req, res, next) => {
       return;
     }
 
-    res.status(200).json({
-      success: true,
-      persona,
-    });
+    res.status(200).json({ success: true, persona });
   } catch (error: unknown) {
     next(error);
   }
