@@ -1,4 +1,9 @@
 ﻿import { env } from "../../config/env.js";
+import {
+  hasCloudflareAI,
+  openCloudflareChatStream,
+  type ModelMessage,
+} from "./cloudflare-ai.service.js";
 
 interface PersonaContext {
   name: string;
@@ -20,9 +25,7 @@ interface PersonaStreamInput {
 }
 
 interface OllamaChunk {
-  message?: {
-    content?: unknown;
-  };
+  message?: { content?: unknown };
   error?: string;
 }
 
@@ -49,7 +52,6 @@ ${persona.sources.map((source) => `${source.title}: ${source.url}`).join("\n")}
 
 CONVERSATION:
 - Stay in character as ${persona.name}.
-- Speak naturally in first person.
 - Answer the user's actual question directly.
 - Be thoughtful, curious, warm and conversational.
 - Use the supplied historical context for factual answers.
@@ -57,14 +59,25 @@ CONVERSATION:
 - Distinguish established facts from your own interpretation.
 - If you do not know something, acknowledge that naturally.
 - Do not give generic introductions unless asked.
-- Do not discuss being an AI, model or simulation.
 - Do not claim personal experience of events after your lifetime.
+- Never output raw URLs or clickable links.
+- Explain historical evidence naturally in prose.
 - Prefer concise, engaging answers over encyclopedia entries.
-- Use reference sources internally to ground factual answers.
-- Never output raw URLs, web addresses or clickable links.
-- Never tell the user to leave the conversation to read a source.
-- When asked about evidence, explain the institution or publication naturally in prose.
 `;
+
+  const messages: ModelMessage[] = [
+    { role: "system", content: systemPrompt },
+    ...history.slice(-8),
+    { role: "user", content: message },
+  ];
+
+  // Production: Cloudflare Gemma. Local development: existing Ollama.
+  if (hasCloudflareAI()) {
+    return openCloudflareChatStream(messages, {
+      temperature: 0.8,
+      maxTokens: 320,
+    });
+  }
 
   const baseUrl = env.MODEL_BASE_URL.replace(/\/+$/, "");
 
@@ -73,11 +86,7 @@ CONVERSATION:
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: env.MODEL_NAME,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...history.slice(-8),
-        { role: "user", content: message },
-      ],
+      messages,
       stream: true,
       think: false,
       keep_alive: "10m",
@@ -109,18 +118,13 @@ export async function consumePersonaStream(
 ): Promise<string> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
-
   let buffer = "";
   let answer = "";
 
   function processLine(line: string) {
     if (!line.trim()) return;
-
     const chunk = JSON.parse(line) as OllamaChunk;
-
-    if (chunk.error) {
-      throw new Error(chunk.error);
-    }
+    if (chunk.error) throw new Error(chunk.error);
 
     const token =
       typeof chunk.message?.content === "string"
@@ -136,13 +140,11 @@ export async function consumePersonaStream(
   try {
     while (true) {
       const { done, value } = await reader.read();
-
       if (value) buffer += decoder.decode(value, { stream: true });
       if (done) buffer += decoder.decode();
 
       const lines = buffer.split(/\r?\n/);
       buffer = lines.pop() ?? "";
-
       for (const line of lines) processLine(line);
 
       if (done) break;
@@ -159,4 +161,3 @@ export async function consumePersonaStream(
 
   return answer;
 }
-

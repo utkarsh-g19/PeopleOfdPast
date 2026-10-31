@@ -3,6 +3,7 @@ import { TyloMemory } from "../models/tylo-memory.model.js";
 import {
   embedQuery,
   embedDocument,
+  getCurrentEmbeddingModel,
 } from "./embeddings/embedding.service.js";
 
 interface RetrievedMemory {
@@ -16,7 +17,11 @@ export async function findRelevantTyloMemories(
   companionId: string,
   question: string,
 ): Promise<RetrievedMemory[]> {
-  const queryVector = await embedQuery(question);
+  const [queryVector] = await Promise.all([
+    embedQuery(question),
+  ]);
+
+  const embeddingModel = getCurrentEmbeddingModel();
 
   const results = await TyloMemory.aggregate([
     {
@@ -29,6 +34,7 @@ export async function findRelevantTyloMemories(
         filter: {
           ownerSub,
           companionId: new mongoose.Types.ObjectId(companionId),
+          embeddingModel,
         },
       },
     },
@@ -51,7 +57,14 @@ export async function saveTyloConversationMemory(
   assistantMessage: string,
   sourceKey: string,
 ): Promise<void> {
-  const existing = await TyloMemory.exists({ sourceKey });
+  const embeddingModel = getCurrentEmbeddingModel();
+
+  // Skip only if this exchange is already embedded with the active model.
+  const existing = await TyloMemory.exists({
+    sourceKey,
+    embeddingModel,
+  });
+
   if (existing) return;
 
   const content =
@@ -62,13 +75,14 @@ export async function saveTyloConversationMemory(
     content,
   );
 
+  // Update an old vector when its embedding model has changed.
   await TyloMemory.updateOne(
     { sourceKey },
     {
-      $setOnInsert: {
-        sourceKey,
+      $set: {
         ownerSub,
         companionId: new mongoose.Types.ObjectId(companionId),
+        embeddingModel,
         content,
         embedding,
         turnAt: new Date(),

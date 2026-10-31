@@ -1,4 +1,9 @@
 ﻿import { env } from "../../config/env.js";
+import {
+  hasCloudflareAI,
+  openCloudflareChatStream,
+  type ModelMessage,
+} from "./cloudflare-ai.service.js";
 
 interface TyloInput {
   name: string;
@@ -63,6 +68,19 @@ CONVERSATION GUIDELINES:
 - Keep responses conversational and appropriately concise.
 `;
 
+  const messages: ModelMessage[] = [
+    { role: "system", content: systemPrompt },
+    ...input.history.slice(-10),
+    { role: "user", content: input.message },
+  ];
+
+  if (hasCloudflareAI()) {
+    return openCloudflareChatStream(messages, {
+      temperature: 0.8,
+      maxTokens: 260,
+    });
+  }
+
   const baseUrl = env.MODEL_BASE_URL.replace(/\/+$/, "");
 
   const response = await fetch(`${baseUrl}/api/chat`, {
@@ -70,11 +88,7 @@ CONVERSATION GUIDELINES:
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: env.MODEL_NAME,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...input.history.slice(-10),
-        { role: "user", content: input.message },
-      ],
+      messages,
       stream: true,
       think: false,
       keep_alive: "10m",
@@ -106,7 +120,6 @@ export async function consumeTyloStream(
 ): Promise<string> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
-
   let buffer = "";
   let answer = "";
 
@@ -114,7 +127,6 @@ export async function consumeTyloStream(
     if (!line.trim()) return;
 
     const chunk = JSON.parse(line) as OllamaChunk;
-
     if (chunk.error) throw new Error(chunk.error);
 
     const token =
@@ -131,13 +143,11 @@ export async function consumeTyloStream(
   try {
     while (true) {
       const { done, value } = await reader.read();
-
       if (value) buffer += decoder.decode(value, { stream: true });
       if (done) buffer += decoder.decode();
 
       const lines = buffer.split(/\r?\n/);
       buffer = lines.pop() ?? "";
-
       for (const line of lines) processLine(line);
 
       if (done) break;

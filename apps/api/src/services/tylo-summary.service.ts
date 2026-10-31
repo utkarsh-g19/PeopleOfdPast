@@ -2,6 +2,10 @@
 import { env } from "../config/env.js";
 import { MemoryCompanion } from "../models/memory-companion.model.js";
 import { TyloMessage } from "../models/tylo-message.model.js";
+import {
+  completeCloudflareChat,
+  hasCloudflareAI,
+} from "./llm/cloudflare-ai.service.js";
 
 const SUMMARY_INTERVAL = 10;
 const BATCH_SIZE = 30;
@@ -75,53 +79,66 @@ Return a compact, well-organized factual memory summary.
 Use headings and bullet points. Do not include conversational filler.
 `;
 
-  const baseUrl = env.MODEL_BASE_URL.replace(/\/+$/, "");
+  let summary: string;
 
-  const response = await fetch(`${baseUrl}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: env.MODEL_NAME,
-      messages: [
+  if (hasCloudflareAI()) {
+    summary = await completeCloudflareChat(
+      [
         {
           role: "system",
           content: "You are an accurate memory archivist. Never fabricate facts.",
         },
         { role: "user", content: prompt },
       ],
-      stream: false,
-      think: false,
-      keep_alive: "10m",
-      options: {
-        temperature: 0.15,
-        num_ctx: 4096,
-        num_predict: 700,
-      },
-    }),
-    signal: AbortSignal.timeout(120000),
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      `TYLO summary failed (${response.status}): ${await response.text()}`,
+      { temperature: 0.15, maxTokens: 700 },
     );
+  } else {
+    const baseUrl = env.MODEL_BASE_URL.replace(/\/+$/, "");
+
+    const response = await fetch(`${baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: env.MODEL_NAME,
+        messages: [
+          {
+            role: "system",
+            content: "You are an accurate memory archivist. Never fabricate facts.",
+          },
+          { role: "user", content: prompt },
+        ],
+        stream: false,
+        think: false,
+        keep_alive: "10m",
+        options: {
+          temperature: 0.15,
+          num_ctx: 4096,
+          num_predict: 700,
+        },
+      }),
+      signal: AbortSignal.timeout(120000),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `TYLO summary failed (${response.status}): ${await response.text()}`,
+      );
+    }
+
+    const result = await response.json() as {
+      message?: { content?: unknown };
+    };
+
+    summary =
+      typeof result.message?.content === "string"
+        ? result.message.content.trim()
+        : "";
   }
 
-  const result = await response.json() as {
-    message?: { content?: unknown };
-  };
-
-  const summary =
-    typeof result.message?.content === "string"
-      ? result.message.content.trim()
-      : "";
-
-  if (!summary) {
+  if (!summary.trim()) {
     throw new Error("TYLO generated an empty memory summary.");
   }
 
-  // Optimistic update prevents concurrent requests from overwriting
-  // a summary generated from a newer transcript position.
   const updated = await MemoryCompanion.findOneAndUpdate(
     {
       _id: companionId,

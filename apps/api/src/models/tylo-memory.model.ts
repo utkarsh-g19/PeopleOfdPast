@@ -2,10 +2,7 @@
 
 const tyloMemorySchema = new Schema(
   {
-    ownerSub: {
-      type: String,
-      required: true,
-    },
+    ownerSub: { type: String, required: true },
     companionId: {
       type: Schema.Types.ObjectId,
       ref: "MemoryCompanion",
@@ -15,6 +12,11 @@ const tyloMemorySchema = new Schema(
       type: String,
       unique: true,
       sparse: true,
+    },
+    embeddingModel: {
+      type: String,
+      required: true,
+      default: "unknown",
     },
     content: {
       type: String,

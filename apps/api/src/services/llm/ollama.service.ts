@@ -1,4 +1,5 @@
 ﻿import { env } from "../../config/env.js";
+import { hasCloudflareAI, completeCloudflareChat, type ModelMessage } from "./cloudflare-ai.service.js";
 
 interface OllamaMessage {
   role: "system" | "user" | "assistant";
@@ -115,6 +116,13 @@ How to converse:
     { role: "user", content: message },
   ];
 
+  if (hasCloudflareAI()) {
+    return completeCloudflareChat(messages as ModelMessage[], {
+      temperature: 0.9,
+      maxTokens: 320,
+    });
+  }
+
   const firstAttempt = await requestOllama(messages);
 
   console.info(
@@ -148,3 +156,4 @@ Answer the user's question directly. Be conversational and historically accurate
     "The model returned an empty answer twice. Check the Ollama model and runtime.",
   );
 }
+
