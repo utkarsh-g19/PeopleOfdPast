@@ -34,20 +34,32 @@ interface PortraitResult {
 const manualCommonsFiles: Record<string, string> = {
   "hypatia": "Hypatia portrait.png",
   "leonardo-da-vinci": "Leonardo da Vinci - presumed self-portrait - WGA12798.jpg",
-  "jane-austen": "Jane Austen Portrait.jpg",
-  "mother-teresa": "Mother Teresa.jpg",
+  "jane-austen": "Jane Austen.jpg",
+  "mother-teresa": "Mother Teresa 1995.jpg",
   "euclid": "Euclid by Andre Thevet 1584.webp",
-  "cleopatra-vii": "CleopatraVII.jpg",
+  "cleopatra-vii": "Altes Museum Berlin - Kleopatra VII.jpg",
   "benjamin-franklin": "Joseph Siffrein Duplessis - Benjamin Franklin - Google Art Project.jpg",
+  "rumi": "Maulana Jalaluddin Mohammad Balkhi by Hossein Behzad - 1957.png",
+  "bhagat-singh": "Bhagat Singh 1929.jpg",
+  "ashoka": "Ashoka with his Queens at Sannati-Kanaganahalli Stupa.jpg",
+  "rani-lakshmibai": "Rani Lakshmibai contemporary portrait.jpg",
+  "confucius": "Confucius Sinarum Philosophus portrait.png",
+  "ibn-al-haytham": "Ibn al-Haytham.png",
 };
 
 const manualCredits: Record<string, string> = {
   "hypatia": "Jules Maurice Gaspard, imagined portrait (1908) · Wikimedia Commons",
   "leonardo-da-vinci": "Presumed self-portrait · attribution debated · Wikimedia Commons",
-  "jane-austen": "Cassandra Austen · Wikimedia Commons · Public domain",
-  "mother-teresa": "Evert Odekerken · CC BY 2.5 · Wikimedia Commons",
+  "jane-austen": "Based on Cassandra Austen’s portrait · Wikimedia Commons · Public domain",
+  "rumi": "Hossein Behzad (1957), artistic depiction · Wikimedia Commons",
+  "bhagat-singh": "Unknown photographer, 1929 · Wikimedia Commons · Public domain in India",
+  "ashoka": "Sannati-Kanaganahalli relief with inscription naming Ashoka · Wikimedia Commons",
+  "rani-lakshmibai": "Anonymous contemporary portrait, published 1947 · Wikimedia Commons",
+  "confucius": "Historical artistic depiction · Wikimedia Commons · Public Domain Mark",
+  "ibn-al-haytham": "Sopianwar, artistic depiction · CC BY-SA 4.0 · Wikimedia Commons",
+  "mother-teresa": "Photograph, 1995 · Wikimedia Commons",
+  "cleopatra-vii": "Marble bust of Cleopatra VII, c. 40–30 BCE · Wikimedia Commons",
   "euclid": "André Thevet (1584) · historical depiction · Wikimedia Commons",
-  "cleopatra-vii": "Coin of Cleopatra VII · Wikimedia Commons",
   "benjamin-franklin": "Joseph Siffrein Duplessis · Wikimedia Commons",
 };
 
@@ -76,6 +88,24 @@ async function fetchJson<T>(url: string): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+async function isImageAvailable(url: string): Promise<boolean> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const response = await fetch(url, {
+        headers: { "User-Agent": USER_AGENT, Accept: "image/avif,image/webp,image/*,*/*;q=0.8" },
+        signal: AbortSignal.timeout(12000),
+      });
+      const isImage = response.ok && (response.headers.get("content-type") ?? "").toLowerCase().startsWith("image/");
+      await response.body?.cancel();
+      if (isImage) return true;
+    } catch {
+      // Retry transient CDN and network failures before marking a portrait broken.
+    }
+    if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+  }
+  return false;
 }
 
 function cleanMetadata(value?: string): string {
@@ -198,13 +228,17 @@ async function searchCommons(name: string): Promise<PortraitResult | null> {
       const matches = tokens.filter((token) => searchable.includes(token));
       return {
         info,
+        isDepiction: /portrait|photograph|\bphoto\b|depiction|painting|drawing|bust|sculpture|sketch|engraving|illustration/i.test(
+          `${page.title ?? ""} ${description}`,
+        ),
         score: tokens.length ? matches.length / tokens.length : 0,
       };
     })
+    .filter((candidate) => candidate.isDepiction)
     .sort((a, b) => b.score - a.score);
 
   const best = candidates[0];
-  if (!best || best.score < 0.34 || !best.info.thumburl) return null;
+  if (!best || best.score < 0.8 || !best.info.thumburl) return null;
 
   return {
     url: best.info.thumburl,
@@ -217,6 +251,10 @@ async function findPortrait(
   slug: string,
   name: string,
 ): Promise<PortraitResult | null> {
+  // No verified portrait source is available; avoid reattaching an unrelated image
+  // that merely mentions Passeron's book or name.
+  if (slug === "jean-claude-passeron") return null;
+
   const manualFile = manualCommonsFiles[slug];
 
   if (manualFile) {
@@ -276,34 +314,60 @@ async function main() {
         if (index >= profiles.length) return;
 
         const profile = profiles[index];
+        await new Promise((resolve) => setTimeout(resolve, 300));
 
         try {
           if (profile.portraitUrl) {
             const info = await getCommonsFileInfo(profile.portraitUrl);
+            const refreshedUrl = info?.thumburl || info?.url || profile.portraitUrl;
 
-            if (info) {
+            if (await isImageAvailable(refreshedUrl)) {
+              if (info) {
+                await Persona.updateOne(
+                  { slug: profile.slug },
+                  {
+                    $set: {
+                      portraitUrl: refreshedUrl,
+                      portraitCredit: makeCredit(info) || profile.portraitCredit,
+                      portraitSourceUrl:
+                        info.descriptionurl || profile.portraitSourceUrl || "https://commons.wikimedia.org/",
+                    },
+                  },
+                );
+              }
+              alreadyHadImages++;
+              console.log(`[OK] ${profile.name}`);
+              continue;
+            }
+
+            console.log(`[BROKEN URL] ${profile.name}; searching for a replacement`);
+            const replacement = await findPortrait(profile.slug, profile.name);
+
+            if (replacement && await isImageAvailable(replacement.url)) {
               await Persona.updateOne(
                 { slug: profile.slug },
                 {
                   $set: {
-                    portraitCredit: makeCredit(info),
-                    portraitSourceUrl:
-                      info.descriptionurl || "https://commons.wikimedia.org/",
+                    portraitUrl: replacement.url,
+                    portraitCredit: replacement.credit,
+                    portraitSourceUrl: replacement.sourceUrl,
                   },
                 },
               );
+              updated++;
+              console.log(`[REPAIRED] ${profile.name}`);
+            } else {
+              misses.push(profile.name);
+              console.log(`[NO VERIFIED IMAGE] ${profile.name}`);
             }
-
-            alreadyHadImages++;
-            console.log(`[KEPT] ${profile.name}`);
             continue;
           }
 
           const portrait = await findPortrait(profile.slug, profile.name);
 
-          if (!portrait) {
+          if (!portrait || !(await isImageAvailable(portrait.url))) {
             misses.push(profile.name);
-            console.log(`[NO MATCH] ${profile.name}`);
+            console.log(`[NO VERIFIED IMAGE] ${profile.name}`);
             continue;
           }
 
@@ -334,7 +398,7 @@ async function main() {
 
     await Promise.all(
       Array.from(
-        { length: Math.min(4, Math.max(1, profiles.length)) },
+        { length: Math.min(2, Math.max(1, profiles.length)) },
         () => worker(),
       ),
     );

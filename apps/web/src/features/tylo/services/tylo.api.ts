@@ -28,6 +28,7 @@ export interface TyloCompanion {
   name: string;
   relationship: string;
   description: string;
+  profileImageDataUrl: string;
   profile: TyloProfile;
   memories: TyloMemory[];
   createdAt: string;
@@ -90,6 +91,7 @@ export async function createCompanion(
     name: string;
     relationship: string;
     description: string;
+    profileImageDataUrl: string;
     profile: TyloProfile;
   },
 ) {
@@ -160,6 +162,7 @@ export async function updateCompanion(
     name: string;
     relationship: string;
     description: string;
+    profileImageDataUrl?: string;
     profile: TyloProfile;
   },
 ) {

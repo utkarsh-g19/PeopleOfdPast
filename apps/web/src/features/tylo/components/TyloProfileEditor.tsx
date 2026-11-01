@@ -89,6 +89,7 @@ export default function TyloProfileEditor({
   const [name, setName] = useState(companion.name);
   const [relationship, setRelationship] = useState(companion.relationship);
   const [description, setDescription] = useState(companion.description ?? "");
+  const [profileImageDataUrl, setProfileImageDataUrl] = useState(companion.profileImageDataUrl ?? "");
   const [profile, setProfile] = useState<TyloProfile>(() => ({
     ...emptyProfile(),
     ...companion.profile,
@@ -98,6 +99,7 @@ export default function TyloProfileEditor({
     setName(companion.name);
     setRelationship(companion.relationship);
     setDescription(companion.description ?? "");
+    setProfileImageDataUrl(companion.profileImageDataUrl ?? "");
     setProfile({ ...emptyProfile(), ...companion.profile });
     setError(null);
     setEditing(true);
@@ -119,6 +121,7 @@ export default function TyloProfileEditor({
         name,
         relationship,
         description,
+        profileImageDataUrl,
         profile,
       });
 
@@ -217,6 +220,31 @@ export default function TyloProfileEditor({
         />
       </label>
 
+      <label className="tylo-profile-description">
+        Their photo *
+        <input type="file" accept="image/jpeg,image/png,image/webp" required={!profileImageDataUrl} onChange={(event) => {
+          const file = event.currentTarget.files?.[0];
+          if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const image = new Image();
+            image.onload = () => {
+              const canvas = document.createElement("canvas");
+              const scale = Math.min(1, 720 / Math.max(image.width, image.height));
+              canvas.width = Math.round(image.width * scale);
+              canvas.height = Math.round(image.height * scale);
+              canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+              const compressed = canvas.toDataURL("image/jpeg", 0.72);
+              if (compressed.length <= 700000) setProfileImageDataUrl(compressed);
+              else setError("This photo is too large after compression. Choose a smaller image.");
+            };
+            image.src = String(reader.result);
+          };
+          reader.readAsDataURL(file);
+        }} />
+        {profileImageDataUrl && <img className="tylo-photo-preview" src={profileImageDataUrl} alt={`Portrait of ${name}`} />}
+      </label>
+
       {SECTIONS.map((section) => (
         <details className="tylo-profile-section" key={section.title}>
           <summary>
@@ -226,12 +254,13 @@ export default function TyloProfileEditor({
           <div className="tylo-profile-fields">
             {section.fields.map((field) => (
               <label key={field.key}>
-                {field.label}
+                {field.label} <span className="required-mark" aria-hidden="true">*</span>
                 <textarea
                   value={profile[field.key]}
                   onChange={(event) => changeProfile(field.key, event.target.value)}
                   placeholder={field.placeholder}
                   rows={3}
+                  required
                 />
               </label>
             ))}

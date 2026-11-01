@@ -26,8 +26,18 @@ const profileSchema = z.object({
 const createSchema = z.object({
   name: z.string().trim().min(1).max(100),
   relationship: z.string().trim().min(1).max(80),
-  description: z.string().trim().max(2000).optional().default(""),
+  description: z.string().trim().min(1).max(2000),
+  profileImageDataUrl: z.string().regex(/^data:image\/(jpeg|png|webp);base64,/).max(700000),
   profile: profileSchema.optional(),
+}).superRefine((data, context) => {
+  const profile = data.profile;
+  if (!profile) {
+    context.addIssue({ code: "custom", path: ["profile"], message: "Complete all 15 profile details." });
+    return;
+  }
+  for (const [key, value] of Object.entries(profile)) {
+    if (!value.trim()) context.addIssue({ code: "custom", path: ["profile", key], message: "This detail is required." });
+  }
 });
 
 const memorySchema = z.object({
@@ -57,6 +67,7 @@ function presentCompanion(
     name: companion.name,
     relationship: companion.relationship,
     description: companion.description,
+    profileImageDataUrl: companion.profileImageDataUrl ?? "",
     profile: companion.profile ?? {},
     memories: memories.map((memory) => ({
       id: memory._id.toString(),
@@ -213,6 +224,7 @@ export const updateCompanion: RequestHandler = async (req, res, next) => {
       name: z.string().trim().min(1).max(100).optional(),
       relationship: z.string().trim().min(1).max(80).optional(),
       description: z.string().trim().max(2000).optional(),
+      profileImageDataUrl: z.string().regex(/^data:image\/(jpeg|png|webp);base64,/).max(700000).optional(),
       profile: profileSchema.optional(),
     }).strict().refine(
       (data) => Object.keys(data).length > 0,
@@ -229,10 +241,20 @@ export const updateCompanion: RequestHandler = async (req, res, next) => {
       return;
     }
 
+    if (parsed.data.profile && Object.entries(parsed.data.profile).some(([, value]) => !value.trim())) {
+      res.status(400).json({ success: false, message: "Complete all 15 profile details before saving." });
+      return;
+    }
+
     const companion = await MemoryCompanion.findOne({ _id: id, ownerSub });
 
     if (!companion) {
       res.status(404).json({ success: false, message: "Companion not found." });
+      return;
+    }
+
+    if (!companion.profileImageDataUrl && !parsed.data.profileImageDataUrl) {
+      res.status(400).json({ success: false, message: "Add a profile photo before saving this memory space." });
       return;
     }
 

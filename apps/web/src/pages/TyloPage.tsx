@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState, type FormEvent } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-import { Heart, Plus, Trash2, BookHeart, ChevronDown } from "lucide-react";
+import { Heart, Plus, Trash2, BookHeart, ChevronDown, ImagePlus } from "lucide-react";
 import {
   fetchCompanions,
   createCompanion,
@@ -158,6 +158,7 @@ export default function TyloPage() {
   const [relationship, setRelationship] = useState("");
   const [description, setDescription] = useState("");
   const [profile, setProfile] = useState<TyloProfile>({ ...EMPTY_PROFILE });
+  const [profileImageDataUrl, setProfileImageDataUrl] = useState("");
 
   const [activeCompanionId, setActiveCompanionId] = useState<string | null>(null);
   const [memoryTitle, setMemoryTitle] = useState("");
@@ -216,6 +217,10 @@ export default function TyloPage() {
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!token || saving) return;
+    if (!profileImageDataUrl || Object.values(profile).some((value) => !value.trim())) {
+      setError("Add a profile photo and complete all 15 details before creating this memory space.");
+      return;
+    }
 
     try {
       setSaving(true);
@@ -225,6 +230,7 @@ export default function TyloPage() {
         name,
         relationship,
         description,
+        profileImageDataUrl,
         profile,
       });
 
@@ -233,6 +239,7 @@ export default function TyloPage() {
       setRelationship("");
       setDescription("");
       setProfile({ ...EMPTY_PROFILE });
+      setProfileImageDataUrl("");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not create memory space.");
     } finally {
@@ -313,8 +320,7 @@ export default function TyloPage() {
       <span className="eyebrow"><Heart size={15} /> TALK TO YOUR LOVED ONES</span>
       <h1>Your memories. <em>Your space.</em></h1>
       <p className="page-intro">
-        Every little detail matters. Tell us about them, in your own words.
-        You can leave fields blank and add more memories whenever you remember.
+        Build a thoughtful profile with a photo and the details that make them unmistakably themselves.
       </p>
 
       <section className="tylo-create-panel">
@@ -345,14 +351,44 @@ export default function TyloPage() {
             </label>
           </div>
 
+          <label className="tylo-photo-field">
+            <span><ImagePlus size={16} /> Their photo *</span>
+            <input type="file" accept="image/jpeg,image/png,image/webp" required={!profileImageDataUrl} onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              if (!file) return;
+              if (!file.type.match(/^image\/(jpeg|png|webp)$/)) {
+                setError("Choose a JPG, PNG, or WebP image.");
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => {
+                const image = new Image();
+                image.onload = () => {
+                  const canvas = document.createElement("canvas");
+                  const scale = Math.min(1, 720 / Math.max(image.width, image.height));
+                  canvas.width = Math.round(image.width * scale);
+                  canvas.height = Math.round(image.height * scale);
+                  canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+                  const compressed = canvas.toDataURL("image/jpeg", 0.72);
+                  if (compressed.length > 700000) setError("This photo is too large after compression. Choose a smaller image.");
+                  else { setProfileImageDataUrl(compressed); setError(null); }
+                };
+                image.src = String(reader.result);
+              };
+              reader.readAsDataURL(file);
+            }} />
+            {profileImageDataUrl && <img className="tylo-photo-preview" src={profileImageDataUrl} alt="Preview of the loved one’s photo" />}
+          </label>
+
           <label>
-            A little about them
+            A little about them *
             <textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="An introduction in your own words..."
               rows={3}
               maxLength={2000}
+              required
             />
           </label>
 
@@ -360,7 +396,7 @@ export default function TyloPage() {
             <div>
               <span className="eyebrow">THEIR STORY, IN DETAIL</span>
               <h3>Help us get to know them.</h3>
-              <p>15 categories · All optional · Your words, your memories</p>
+              <p>15 required details · Your words, your memories</p>
             </div>
             <span className="tylo-profile-progress">
               {populatedProfileCount}/15 filled
@@ -368,11 +404,11 @@ export default function TyloPage() {
           </div>
 
           <div className="tylo-profile-sections">
-            {PROFILE_SECTIONS.map((section, sectionIndex) => (
+            {PROFILE_SECTIONS.map((section) => (
               <details
                 className="tylo-profile-section"
                 key={section.title}
-                open={sectionIndex === 0}
+                open
               >
                 <summary>
                   <span>
@@ -385,12 +421,13 @@ export default function TyloPage() {
                 <div className="tylo-profile-fields">
                   {section.fields.map((field) => (
                     <label key={field.key}>
-                      {field.label}
+                      {field.label} <span className="required-mark" aria-hidden="true">*</span>
                       <textarea
                         value={profile[field.key]}
                         onChange={(event) => updateProfile(field.key, event.target.value)}
                         placeholder={field.placeholder}
                         rows={3}
+                        required
                       />
                     </label>
                   ))}
@@ -438,6 +475,12 @@ export default function TyloPage() {
                     <Trash2 size={17} />
                   </button>
                 </div>
+
+                {companion.profileImageDataUrl ? (
+                  <img className="tylo-companion-photo" src={companion.profileImageDataUrl} alt={`Photo of ${companion.name}`} />
+                ) : (
+                  <div className="tylo-companion-photo tylo-companion-photo--empty" aria-label="No photo added yet">Add a photo when you edit this profile</div>
+                )}
 
                 {companion.description && <p>{companion.description}</p>}
 
@@ -516,6 +559,8 @@ export default function TyloPage() {
                 <TyloChat
                   companionId={companion.id}
                   companionName={companion.name}
+                  companionImage={companion.profileImageDataUrl}
+                  relationship={companion.relationship}
                   token={token ?? ""}
                 />
               </article>

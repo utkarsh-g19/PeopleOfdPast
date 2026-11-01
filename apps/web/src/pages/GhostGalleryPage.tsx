@@ -46,7 +46,7 @@ export default function GhostGalleryPage() {
             <p>
               {loading
                 ? "Loading the collection..."
-                : `Showing ${filteredProfiles.length} of ${profiles.length} historical figures.`}
+                : `Showing ${filteredProfiles.length} of ${profiles.length} lives across time.`}
             </p>
           </div>
         </div>

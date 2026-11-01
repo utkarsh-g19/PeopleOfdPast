@@ -38,6 +38,7 @@ export interface PersonaSummary {
   experience: Experience;
   imageUrl?: string;
   country?: string;
+  era?: string;
   imageCredit?: string;
   imageSourceUrl?: string;
 }

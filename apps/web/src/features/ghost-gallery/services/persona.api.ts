@@ -17,6 +17,7 @@ interface ApiPersona {
   shortBio: string;
   portraitUrl?: string;
   country?: string;
+  era?: string;
   portraitCredit?: string;
   portraitSourceUrl?: string;
 }
@@ -46,6 +47,7 @@ export async function fetchHistoricalProfiles(
     experience: "ghost",
     imageUrl: persona.portraitUrl,
     country: persona.country,
+    era: persona.era,
     imageCredit: persona.portraitCredit,
     imageSourceUrl: persona.portraitSourceUrl,
   }));

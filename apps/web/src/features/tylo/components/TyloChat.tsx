@@ -9,12 +9,16 @@ import {
 interface Props {
   companionId: string;
   companionName: string;
+  companionImage?: string;
+  relationship: string;
   token: string;
 }
 
 export default function TyloChat({
   companionId,
   companionName,
+  companionImage,
+  relationship,
   token,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -60,6 +64,15 @@ export default function TyloChat({
       active = false;
     };
   }, [open, loaded, token, companionId]);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", onKeyDown);
+    return () => { document.body.style.overflow = previousOverflow; window.removeEventListener("keydown", onKeyDown); };
+  }, [open]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -143,12 +156,19 @@ export default function TyloChat({
       </button>
 
       {open && (
-        <div className="tylo-chat-panel">
-          <div className="tylo-chat-heading">
-            <span className="eyebrow">A SPACE FOR YOUR STORIES</span>
-            <h4>{companionName}</h4>
-            <p>This conversation is saved in your private vault.</p>
-          </div>
+        <div className="tylo-chat-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
+          <div className="tylo-chat-window" role="dialog" aria-modal="true" aria-label={`Conversation with ${companionName}`}>
+            <aside className="tylo-chat-person">
+              {companionImage ? <img src={companionImage} alt={`Portrait of ${companionName}`} /> : <div className="tylo-chat-person-placeholder" aria-label="No photo uploaded">♡</div>}
+              <span className="profile-category">{relationship}</span>
+              <h2>{companionName}</h2>
+              <p>A space for your stories, memories, and the things you still want to say.</p>
+            </aside>
+            <section className="tylo-chat-conversation">
+              <div className="tylo-chat-heading">
+                <div><span className="eyebrow">YOUR PRIVATE CONVERSATION</span><p>Saved in your private vault</p></div>
+                <button className="tylo-chat-close" type="button" aria-label="Close conversation" onClick={() => setOpen(false)}>×</button>
+              </div>
 
           <div className="tylo-chat-messages" aria-live="polite">
             {loading && <p>Opening your conversation...</p>}
@@ -202,6 +222,8 @@ export default function TyloChat({
               Send
             </button>
           </form>
+            </section>
+          </div>
         </div>
       )}
     </section>

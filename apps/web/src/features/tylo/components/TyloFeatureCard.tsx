@@ -24,7 +24,7 @@ export default function TyloFeatureCard() {
       </div>
 
       <div className="tylo-art" aria-hidden="true">
-        <div className="tylo-orb">✦</div>
+        <div className="tylo-orb">POT</div>
         <span className="floating-flower">✿</span>
         <span className="floating-star">✧</span>
         <div className="tylo-art-caption">A place for memories</div>

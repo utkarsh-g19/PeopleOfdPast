@@ -35,6 +35,7 @@ const companionSchema = new Schema(
     name: { type: String, required: true, trim: true, maxlength: 100 },
     relationship: { type: String, required: true, trim: true, maxlength: 80 },
     description: { type: String, default: "", maxlength: 2000 },
+    profileImageDataUrl: { type: String, default: "", maxlength: 700000 },
     memorySummary: {
       type: String,
       default: "",

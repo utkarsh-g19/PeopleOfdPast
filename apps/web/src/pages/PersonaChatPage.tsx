@@ -1,103 +1,53 @@
-﻿import { useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
-import { ArrowLeft, Send, Sparkles } from "lucide-react";
-import { useHistoricalProfiles } from "../features/ghost-gallery/hooks/useHistoricalProfiles.js";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import PersonaStory from "../features/ghost-gallery/components/PersonaStory.js";
 import {
-  streamPersonaMessage,
-  type ChatMessage,
+  fetchHistoricalPersonaDetails,
+  type HistoricalPersonaDetails,
 } from "../features/ghost-gallery/services/persona.api.js";
 
 export default function PersonaChatPage() {
   const { slug } = useParams();
-  const { profiles, loading, error: profilesError } = useHistoricalProfiles();
+  const [persona, setPersona] = useState<HistoricalPersonaDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
-  const [chatError, setChatError] = useState<string | null>(null);
-  
-  const persona = profiles.find((profile) => profile.id === slug);
+  useEffect(() => {
+    const controller = new AbortController();
+    setPersona(null);
+    setLoading(true);
+    setError(null);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+    if (!slug) {
+      setError("No historical figure was selected.");
+      setLoading(false);
+      return () => controller.abort();
+    }
 
-    const message = input.trim();
-    if (!message || !persona || sending) return;
-
-    const previousMessages = messages.slice(-8);
-
-    setMessages((current) => [
-      ...current,
-      { role: "user", content: message },
-      { role: "assistant", content: "" },
-    ]);
-
-    setInput("");
-    setSending(true);
-    setChatError(null);
-
-    try {
-      await streamPersonaMessage(
-        persona.id,
-        message,
-        previousMessages,
-        (token) => {
-          setMessages((current) => {
-            const updated = [...current];
-            const lastIndex = updated.length - 1;
-
-            if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
-              updated[lastIndex] = {
-                ...updated[lastIndex],
-                content: updated[lastIndex].content + token,
-              };
-            }
-
-            return updated;
-          });
-        },
-      );
-    } catch (err: unknown) {
-      setMessages((current) => {
-        const updated = [...current];
-        const last = updated[updated.length - 1];
-
-        if (last?.role === "assistant" && !last.content) {
-          updated.pop();
-        }
-
-        return updated;
+    void fetchHistoricalPersonaDetails(slug, controller.signal)
+      .then(setPersona)
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : "Could not open this story.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
       });
 
-      setInput(message);
-      setChatError(
-        err instanceof Error ? err.message : "The conversation failed.",
-      );
-    } finally {
-      setSending(false);
-    }
-  }
+    return () => controller.abort();
+  }, [slug]);
 
   if (loading) {
     return <main className="inner-page">Opening the archive...</main>;
   }
 
-  if (profilesError) {
-    return (
-      <main className="inner-page">
-        <p role="alert">{profilesError}</p>
-        <Link to="/ghost-gallery" className="text-link">
-          Back to the gallery
-        </Link>
-      </main>
-    );
-  }
-
   if (!persona) {
+    const notFound = error?.toLowerCase().includes("not found");
     return (
       <main className="inner-page">
-        <h1>Figure <em>not found</em></h1>
+        <h1>{notFound ? <>Figure <em>not found</em></> : "The story could not be opened"}</h1>
+        {!notFound && error && <p role="alert">{error}</p>}
         <Link to="/ghost-gallery" className="text-link">
           Back to the gallery
         </Link>
@@ -113,71 +63,12 @@ export default function PersonaChatPage() {
 
       <header className="chat-persona-header">
         <span className="eyebrow">
-          <Sparkles size={14} /> A CONVERSATION THROUGH TIME
+          <Sparkles size={14} /> A STORY THROUGH TIME
         </span>
         <h1>{persona.name}</h1>
-        <p className="page-intro">{persona.description}</p>
-        <PersonaStory slug={persona.id} />
+        <p className="page-intro">{persona.shortBio}</p>
+        <PersonaStory slug={persona.slug} />
       </header>
-
-      <section className="chat-panel">
-        <div className="chat-messages" aria-live="polite">
-          {messages.length === 0 && (
-            <div className="chat-welcome">
-              <span className="eyebrow">THE ARCHIVE IS OPEN</span>
-              <h2>What would you like to ask?</h2>
-              <p>
-                Ask about their life, ideas, work or the world they lived in.
-              </p>
-            </div>
-          )}
-
-          {messages.map((message, index) => (
-            <div
-              className={`chat-message chat-message--${message.role}`}
-              key={`${message.role}-${index}`}
-            >
-              <span className="chat-message-role">
-                {message.role === "user" ? "YOU" : persona.name.toUpperCase()}
-              </span>
-              <p>
-                {message.content || (sending && message.role === "assistant" ? " " : "")}
-              </p>
-            </div>
-          ))}
-
-          {sending && (
-            <p className="chat-thinking">Gathering thoughts from the past...</p>
-          )}
-        </div>
-
-        {chatError && (
-          <p className="chat-error" role="alert">{chatError}</p>
-        )}
-
-        <form className="chat-form" onSubmit={handleSubmit}>
-          <textarea
-            className="chat-input"
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder={`Ask ${persona.name} something...`}
-            rows={2}
-            maxLength={2000}
-            disabled={sending}
-          />
-          <button
-            className="primary-button chat-send-button"
-            type="submit"
-            disabled={sending || !input.trim()}
-          >
-            <Send size={16} /> Send
-          </button>
-        </form>
-      </section>
     </main>
   );
 }
-
-
-
-
