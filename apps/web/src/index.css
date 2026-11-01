@@ -1807,6 +1807,8 @@ body {
 }
 
 .persona-chat-modal {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   position: fixed;
   top: 50%;
   left: 50%;
@@ -1814,7 +1816,8 @@ body {
   transform: translate(-50%, -50%);
   width: min(680px, calc(100vw - 2rem));
   max-width: none;
-  max-height: min(82vh, 760px);
+  height: min(760px, calc(100dvh - 2rem));
+  max-height: none;
   padding: 0;
   overflow: hidden;
   color: var(--parchment);
@@ -1827,13 +1830,29 @@ body {
 .persona-chat-modal-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; padding:1.25rem 1.5rem; border-bottom:1px solid #e8bd6730; }
 .persona-chat-modal-heading h2 { margin:.5rem 0 .15rem; font-size:clamp(1.5rem,4vw,2rem); }
 .persona-chat-modal-heading p { margin:0; color:var(--muted); }
-.persona-chat-modal-messages { display:flex; flex-direction:column; gap:.8rem; min-height:200px; max-height:52vh; overflow-y:auto; padding:1rem 1.5rem; }
+.persona-chat-modal-messages { display:flex; flex-direction:column; gap:.8rem; min-height:0; overflow-y:auto; padding:1rem 1.5rem; }
 .persona-chat-modal-messages .chat-welcome { color:var(--muted); font-size:1rem; }
 .persona-chat-modal .chat-form { border-top:1px solid #e8bd6730; padding:1rem 1.5rem 1.25rem; }
 .profile-chat-link { cursor:pointer; font:inherit; }
 @media (max-width: 520px) {
-  .persona-chat-modal .chat-form { flex-direction:column; align-items:stretch; }
-  .persona-chat-modal .chat-send-button { align-self:flex-end; }
+  .persona-chat-modal {
+    width: calc(100vw - 1rem);
+    height: calc(100dvh - 1rem);
+    border-radius: 12px;
+  }
+  .persona-chat-modal-heading { padding: 1rem; }
+  .persona-chat-modal-messages { padding: 1rem; }
+  .persona-chat-modal .chat-form {
+    flex-direction: row;
+    align-items: flex-end;
+    gap: .6rem;
+    padding: .75rem;
+    padding-bottom: max(.75rem, env(safe-area-inset-bottom));
+    background: #171216;
+  }
+  .persona-chat-modal .chat-input { min-width: 0; min-height: 58px; }
+  .persona-chat-modal .chat-send-button { flex: 0 0 auto; min-height: 48px; padding-inline: .8rem; }
+  .persona-chat-modal-messages .chat-welcome h2 { font-size: clamp(1.8rem, 9vw, 2.8rem); }
 }
 
 /* TYLO opens as a focused conversation window inspired by the companion's portrait. */
@@ -1913,6 +1932,69 @@ input, textarea, select, .tylo-chat-form textarea, .chat-input {
   .tylo-companion-card { grid-template-columns:minmax(0,1fr); }
   .tylo-companion-card > :not(.tylo-chat), .tylo-chat { grid-column:1; grid-row:auto; }
   .tylo-chat { border-left:0; border-top:1px solid rgba(220,157,97,.2); padding:1rem 0 0; }
+}
+
+/* Responsive pass for the final, product-wide layout rules above. */
+@media (max-width: 900px) {
+  .site-header { padding-inline: 1.25rem; }
+  .home-content, .inner-page { width: min(100% - 2rem, 100%); }
+  .profile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  .tylo-section { grid-template-columns: minmax(0, 1fr) minmax(220px, .7fr); gap: 2rem; }
+  .tylo-companion-card { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); }
+  .tylo-chat { min-width: 0; }
+}
+
+@media (max-width: 640px) {
+  .site-header { min-height: 64px; height: auto; padding: .65rem 1rem; gap: .6rem; }
+  .site-header .brand { gap: .35rem; font-size: 12px; white-space: nowrap; }
+  .brand-icon svg { width: 20px; height: 20px; }
+  .main-nav { gap: .65rem; }
+  .main-nav a { font-size: 13px; }
+  .header-actions { gap: .4rem; }
+  .auth-button { min-height: 40px; padding: .5rem .65rem; font-size: 11px; }
+  .home-content, .inner-page { width: min(100% - 1.25rem, 100%); padding: 2.5rem .25rem; }
+  .hero { min-height: min(680px, calc(100svh - 64px)); padding: 5.5rem 1rem 2rem; }
+  .hero > p { max-width: 34rem; font-size: 1rem; }
+  .hero-actions { flex-wrap: wrap; justify-content: center; gap: .75rem; }
+  .hero-bottom { inset-inline: 1rem; gap: .6rem; font-size: 10px; }
+  .section-heading { align-items: flex-start; gap: 1rem; }
+  .section-heading h2, .tylo-copy h2 { font-size: clamp(2rem, 9vw, 3rem); }
+  .profile-grid { grid-template-columns: minmax(0, 1fr); }
+  .profile-card-content { padding: 1.1rem; }
+  .profile-card-actions { gap: .75rem; }
+  .profile-chat-link, .text-link { min-height: 44px; display: inline-flex; align-items: center; }
+  .tylo-section { grid-template-columns: minmax(0, 1fr); padding: 1.5rem 1rem; }
+  .tylo-art { min-height: 220px; }
+  .recent-legacies-section { margin: 2rem 0 3rem; padding: 1.1rem .8rem; }
+  .recent-legacies-grid { grid-template-columns: minmax(0, 1fr); }
+  .persona-story-overview, .tylo-basic-fields, .tylo-profile-fields, .tylo-saved-profile-grid { grid-template-columns: minmax(0, 1fr); }
+  .tylo-create-panel { margin-block: 1.5rem; padding: 1rem; }
+  .tylo-companion-grid { grid-template-columns: minmax(0, 1fr); }
+  .tylo-companion-card { grid-template-columns: minmax(0, 1fr); padding: 1rem; }
+  .tylo-companion-card > :not(.tylo-chat), .tylo-chat { grid-column: 1; grid-row: auto; }
+  .tylo-companion-photo { width: min(100%, 180px); }
+  .tylo-profile-section summary { gap: .6rem; padding: .9rem; }
+  .tylo-profile-section summary small { max-width: 100%; }
+  .archive-controls { align-items: stretch; flex-direction: column; margin: 0 0 1.5rem; }
+  .archive-controls select { width: 100%; min-height: 46px; }
+  .persona-chat-modal { width: calc(100vw - 1rem); height: calc(100svh - 1rem); }
+  .persona-chat-modal-heading h2 { font-size: clamp(1.35rem, 6vw, 1.8rem); overflow-wrap: anywhere; }
+  .persona-chat-modal .chat-form { flex-direction: row; align-items: flex-end; }
+  .persona-chat-modal .chat-input { flex: 1 1 auto; width: 0; min-width: 0; }
+  .persona-chat-modal .chat-send-button { flex: 0 0 auto; align-self: auto; }
+  .tylo-chat-overlay { padding: .5rem; }
+  .tylo-chat-window { width: 100%; height: calc(100svh - 1rem); }
+}
+
+@media (max-width: 380px) {
+  .site-header { padding-inline: .65rem; }
+  .site-header .brand { font-size: 10px; }
+  .main-nav { gap: .45rem; }
+  .main-nav a { font-size: 12px; }
+  .auth-button { padding-inline: .5rem; }
+  .hero h1 { font-size: clamp(2.2rem, 12vw, 3rem); }
+  .persona-chat-modal .chat-form { gap: .4rem; padding-inline: .55rem; }
+  .persona-chat-modal .chat-send-button { padding-inline: .55rem; font-size: 11px; }
 }
 
 .tylo-chat-heading {
